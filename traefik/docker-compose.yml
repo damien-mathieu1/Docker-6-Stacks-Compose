@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  traefik:
+    image: harbinfo.iutmontp.univ-montp2.fr/proxy_dockerhub/traefik:v2.10
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:81"
+    ports:
+      - "81:81"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - external
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.td.anthonymoll.fr`)"
+      - "traefik.http.routers.traefik.entrypoints=web"
+      - "traefik.http.services.traefik.loadbalancer.server.port=81"
+    # Lignes pour Loki
+    logging:
+      driver: loki
+      options:
+        loki-url: http://127.0.0.1:3100/loki/api/v1/push
+        loki-pipeline-stages: |
+          - regex:
+              expression: ’(level|lvl|severity)=(?P<level>\w+)’
+          - labels:
+              level:
+
+networks:
+  external:
+    external: true

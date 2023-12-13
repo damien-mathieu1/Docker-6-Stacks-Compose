@@ -1,0 +1,37 @@
+version: "3"
+
+networks:
+  external:
+    external: true
+
+services:
+  gitea:
+    image: gitea/gitea:1.21.1
+    container_name: gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+    restart: always
+    networks:
+      - external
+    volumes:
+      - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3020:3000"
+      - "222:22"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitea.rule=Host(`ghost.td.anthonymoll.fr`)"
+      - "traefik.http.routers.gitea.entrypoints=web"
+      - "traefik.http.services.gitea.loadbalancer.server.port=3000"
+    logging:
+      driver: loki
+      options:
+        loki-url: http://127.0.0.1:3100/loki/api/v1/push
+        loki-pipeline-stages: |
+          - regex:
+              expression: ’(level|lvl|severity)=(?P<level>\w+)’
+          - labels:
+              level:
